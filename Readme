@@ -1,0 +1,11 @@
+For this coursework you will should;
+a) Create an EC2 Instance on AWS with the following parameters:
+ Size = t2.xlarge
+ OS = Ubuntu 18.04 LTS
+ Ports = 8080 open
+ Storage = 16GB
+b) Prepare for the practical Coursework task by:
+ Appropriately configuring Git and GitHub authentication on your VM
+ Adding the server.js file containing the project code (see 2.4) to your local
+and remote git repositories
+ Installing Docker and launching a Jenkins container 
