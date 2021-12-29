@@ -1,0 +1,97 @@
+---
+- name: nodejs minikube
+  hosts: localhost
+  gather_facts: False
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    image_name: fatir22/cw2
+    image_tag: latest
+    replicas: 2
+  pre_tasks:   
+    - name : Adding dependencies
+      command: sudo apt-get install apt-transport-https ca-certificates curl      
+    - name: Adding kubectl
+      command: sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      command: sudo echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+      command: sudo apt-get update
+      command: sudo apt-get install kubectl -y
+      command: sudo apt-get install conntrack
+    - name: Downloading minikube
+      get_url:
+         url: https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
+         dest: ~/minikube_latest_amd64.deb
+    - name: Installing minkube
+      command: sudo apt-get install ~/minikube_latest_amd64.deb -y
+    - name: Starting Minikube driver using none
+      command: minikube start --driver=none
+    - name: check the status of minikube.
+      command: minikube status
+      register: minikube_status
+      changed_when: false
+      ignore_errors: true
+    - name: start minikube if it's not running.
+      command: minikube start --vm = true
+      when: "not minikube_status.stdout or 'Running' not in minikube_status.stdout"
+  tasks:
+    - name: get existing image hash.
+      shell: |
+        eval $(minikube docker-env)
+        docker images -q {{ image_name }}
+      register: image_hash
+      changed_when: false
+    - name: build image if it's not already built. 
+      shell: | 
+        eval $(minikube docker-env)
+        docker build -t {{ image_name }}:{{ image_tag }} .
+      when: not image_hash.stdout
+    - name: create a deployment for webapp fatir22/cw2.
+      k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: fatir22-cw2
+            namespace: default
+          spec:
+            replicas: "{{ replicas }}"
+            selector:
+              matchLabels:
+                app: fatir22-cw2
+            template:
+              metadata:
+                labels:
+                   app: fatir22-cw2
+              spec:
+                containers:
+                - name: fatir22-cw2
+                  image: "{{ image_name }}:{{ image_tag }}"
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                  - containerPort: 8000
+    - name: create a Service for webapp fatir22/cw2.
+      k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: fatir22-cw2
+            namespace: default
+          spec:
+            type: LoadBalancer
+            ports:
+            - port: 8000
+              targetPort: 8000
+            selector:
+              app: fatir22-cw2
+  post_tasks:
+    - name: exposing WebApp fatir22-cw2 on the host via Minikube.
+      #command: minikube service fatir22/cw2
+      #command: curl $(minikube service fatir22/cw2 --url)
+      command: minikube service fatir22-cw2 --url
+      changed_when: false
+      register: minikube_service
+    - debug:
+        msg: "WebApp fatir22/cw2 URL: {{ minikube_service['stdout_lines'][0] }}"
+    
