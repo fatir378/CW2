@@ -24,3 +24,4 @@ node {
        stage('Push image') {
            
         }
+}
