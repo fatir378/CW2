@@ -6,16 +6,11 @@ node {
       }
 
       
+	 stage('Build image') {         
+       
+            app = docker.build("brandonjones085/test")    
+       }  
 
-      stage('Build image') {         
-         
-           agent { label 'docker'}
-           steps{
-
-             sh "docker build -f Dockerfile -t fatir22/cw2 ./" 
-                
-       }
-     }
 
       stage('Test image') {           
             app.inside {            
