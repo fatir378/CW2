@@ -5,16 +5,18 @@ node {
             checkout scm    
       }
 
-      stage('Initialize'){
-        def dockerHome = tool 'docker'
-        env.PATH = "${dockerHome}/bin:${env.PATH}"
-    }
+      
 
       stage('Build image') {         
-       
-            app = docker.build("fatir22/cw2")    
+         
+           agent { label 'docker'}
+           steps{
+
+             sh "docker build -f Dockerfile -t fatir22/cw2 ./" 
+                
        }
-     
+     }
+
       stage('Test image') {           
             app.inside {            
              
